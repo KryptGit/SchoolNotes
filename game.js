@@ -158,6 +158,12 @@ function pointerHitsToggle(pointer, W) {
 class BootScene extends Phaser.Scene {
   constructor() { super('BootScene'); }
 
+  preload() {
+    for (let i = 0; i < 5; i++) {
+      this.load.image(`photo_${i}`, `photos/photo_${i}.jpg`);
+    }
+  }
+
   create() {
     // ── Pink balloons (3 shades) ─────────────────────────────────────────
     const balloonColors = [COLORS.pink, COLORS.lavender, COLORS.darkPink];
@@ -444,7 +450,7 @@ class BootScene extends Phaser.Scene {
       g.destroy();
     })();
 
-    // ── Photo placeholders (polaroid style) ───────────────────────────────
+    // ── Photo item placeholders (polaroid style, used during gameplay) ────────────────
     const photoTints = [COLORS.pink, COLORS.lavender, COLORS.mint];
     for (let i = 0; i < 3; i++) {
       const g = this.make.graphics({ x: 0, y: 0, add: false });
@@ -486,7 +492,7 @@ class BootScene extends Phaser.Scene {
       g.fillCircle(cx - 7, 6 + photoAreaH + 7, 2);
       g.fillCircle(cx,     6 + photoAreaH + 7, 2);
       g.fillCircle(cx + 7, 6 + photoAreaH + 7, 2);
-      g.generateTexture(`photo_${i}`, 60, 72);
+      g.generateTexture(`photo_item_${i}`, 60, 72);
       g.destroy();
     }
 
@@ -903,7 +909,7 @@ class GameScene extends Phaser.Scene {
     const W = this._W, H = this._H;
     const type   = randItem(ITEM_TYPES);
     const subIdx = randInt(0, 2);
-    const key    = `${type}_${subIdx}`;
+    const key    = type === 'photo' ? `photo_item_${subIdx}` : `${type}_${subIdx}`;
     const barH   = Math.min(H * 0.085, 58);
 
     const x     = randBetween(40, W - 40);
@@ -1338,8 +1344,8 @@ class GameScene extends Phaser.Scene {
       { tex: 'photo_0', tilt: -3 },
       { tex: 'photo_1', tilt:  2 },
       { tex: 'photo_2', tilt: -1 },
-      { tex: 'photo_0', tilt:  4 },
-      { tex: 'photo_1', tilt: -2 },
+      { tex: 'photo_3', tilt:  4 },
+      { tex: 'photo_4', tilt: -2 },
     ];
     this._carouselIdx = 0;
     this._carouselBusy = false;
