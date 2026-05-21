@@ -46,6 +46,114 @@ function randBetween(a, b) { return a + Math.random() * (b - a); }
 function randInt(a, b)     { return Math.floor(randBetween(a, b + 1)); }
 function randItem(arr)     { return arr[Math.floor(Math.random() * arr.length)]; }
 
+// ─── Procedural sound (WebAudio, no assets) ───────────────────────────────────
+class SoundManager {
+  constructor() {
+    this.enabled = typeof localStorage !== 'undefined' && localStorage.getItem('snd') !== '0';
+    this.ctx = null;
+    this.master = null;
+  }
+  _ensure() {
+    if (this.ctx) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) { this.enabled = false; return; }
+    this.ctx = new AC();
+    this.master = this.ctx.createGain();
+    this.master.gain.value = 0.32;
+    this.master.connect(this.ctx.destination);
+  }
+  setEnabled(v) {
+    this.enabled = v;
+    try { localStorage.setItem('snd', v ? '1' : '0'); } catch (e) {}
+    if (v) this._ensure();
+    if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+  }
+  _env(node, attack, hold, release, peak) {
+    const t = this.ctx.currentTime;
+    node.gain.setValueAtTime(0.0001, t);
+    node.gain.exponentialRampToValueAtTime(peak, t + attack);
+    node.gain.setValueAtTime(peak, t + attack + hold);
+    node.gain.exponentialRampToValueAtTime(0.0001, t + attack + hold + release);
+  }
+  _tone({ freq, type = 'sine', attack = 0.005, hold = 0.02, release = 0.12, peak = 0.6 }) {
+    if (!this.enabled) return;
+    this._ensure();
+    if (!this.ctx) return;
+    if (this.ctx.state === 'suspended') this.ctx.resume();
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    osc.connect(g).connect(this.master);
+    this._env(g, attack, hold, release, peak);
+    osc.start();
+    osc.stop(this.ctx.currentTime + attack + hold + release + 0.05);
+  }
+  pop(mult = 1) {
+    const base = 520 + Math.min(mult, 8) * 60;
+    this._tone({ freq: base, type: 'triangle', attack: 0.002, hold: 0.01, release: 0.10, peak: 0.45 });
+    this._tone({ freq: base * 2, type: 'sine',     attack: 0.001, hold: 0.005, release: 0.06, peak: 0.20 });
+  }
+  combo(mult) {
+    const base = 660 + Math.min(mult - 1, 7) * 90;
+    this._tone({ freq: base,       type: 'sine',     attack: 0.005, hold: 0.04, release: 0.30, peak: 0.30 });
+    this._tone({ freq: base * 1.5, type: 'triangle', attack: 0.005, hold: 0.04, release: 0.30, peak: 0.18 });
+  }
+  lifeLost() {
+    this._tone({ freq: 440, type: 'sine', attack: 0.01, hold: 0.05, release: 0.35, peak: 0.35 });
+    setTimeout(() => this._tone({ freq: 330, type: 'sine', attack: 0.01, hold: 0.05, release: 0.45, peak: 0.30 }), 180);
+  }
+  chime() {
+    const notes = [523.25, 659.25, 783.99, 987.77];
+    notes.forEach((f, i) => setTimeout(() => this._tone({
+      freq: f, type: 'sine', attack: 0.008, hold: 0.08, release: 0.8, peak: 0.32,
+    }), i * 130));
+  }
+  click() {
+    this._tone({ freq: 880, type: 'triangle', attack: 0.001, hold: 0.008, release: 0.06, peak: 0.18 });
+  }
+  tick() {
+    this._tone({ freq: 1200, type: 'square', attack: 0.001, hold: 0.003, release: 0.012, peak: 0.05 });
+  }
+}
+const sound = new SoundManager();
+
+// Sound toggle button (top-right, shared across scenes)
+function addSoundToggle(scene, W) {
+  const padding = 12;
+  const size = 36;
+  const cx = W - padding - size / 2;
+  const cy = padding + size / 2;
+
+  const bg = scene.add.graphics();
+  bg.fillStyle(0xFFFFFF, 0.65);
+  bg.fillCircle(0, 0, size / 2);
+  bg.lineStyle(1.5, COLORS.pink, 0.6);
+  bg.strokeCircle(0, 0, size / 2);
+
+  const icon = scene.add.text(0, 0, sound.enabled ? '🔊' : '🔇', {
+    fontSize: '20px',
+  }).setOrigin(0.5);
+
+  const cont = scene.add.container(cx, cy, [bg, icon]).setDepth(100);
+  cont.setSize(size, size);
+  cont.setInteractive(new Phaser.Geom.Circle(0, 0, size / 2), Phaser.Geom.Circle.Contains);
+  cont.on('pointerdown', (pointer, x, y, event) => {
+    sound.setEnabled(!sound.enabled);
+    icon.setText(sound.enabled ? '🔊' : '🔇');
+    if (sound.enabled) sound.click();
+    if (event && event.stopPropagation) event.stopPropagation();
+  });
+  cont._isToggle = true;
+  cont._toggleBounds = { x: W - padding - size, y: 0, w: size + padding, h: size + padding };
+  return cont;
+}
+
+// True when a pointer event hits the sound toggle area
+function pointerHitsToggle(pointer, W) {
+  return pointer && pointer.x > W - 48 && pointer.y < 48;
+}
+
 // ─── BootScene ────────────────────────────────────────────────────────────────
 class BootScene extends Phaser.Scene {
   constructor() { super('BootScene'); }
@@ -516,10 +624,10 @@ class MenuScene extends Phaser.Scene {
     badgeG.lineStyle(3, 0xFFFFFF, 1);
     badgeG.strokeCircle(badgeX, badgeY, badgeR);
     this.add.text(badgeX, badgeY, '19', {
-      fontFamily: 'Arial Black, Arial, sans-serif',
+      fontFamily: '"Quicksand", sans-serif',
       fontSize:   `${Math.min(W * 0.075, 28)}px`,
       color:      '#FFFFFF',
-      fontStyle:  'bold',
+      fontStyle:  '700',
     }).setOrigin(0.5).setDepth(6);
 
     // Cake emoji
@@ -529,18 +637,18 @@ class MenuScene extends Phaser.Scene {
 
     // Happy Birthday
     this.add.text(W / 2, cardY + cardH * 0.35, 'Happy Birthday', {
-      fontFamily: 'Georgia, serif',
+      fontFamily: '"Playfair Display", Georgia, serif',
       fontSize:   `${Math.min(W * 0.072, 27)}px`,
       color:      '#CC5599',
-      fontStyle:  'italic',
+      fontStyle:  'italic 700',
     }).setOrigin(0.5);
 
     // Kavya name — big & bold
     this.add.text(W / 2, cardY + cardH * 0.50, 'Kavya! 💖', {
-      fontFamily: 'Georgia, serif',
+      fontFamily: '"Playfair Display", Georgia, serif',
       fontSize:   `${Math.min(W * 0.115, 44)}px`,
       color:      '#FF2277',
-      fontStyle:  'bold',
+      fontStyle:  '900',
     }).setOrigin(0.5);
 
     // Little item preview row — cats, pandas, choc, strawberry
@@ -554,23 +662,26 @@ class MenuScene extends Phaser.Scene {
 
     // Subtitle
     this.add.text(W / 2, H * 0.65, 'Tap the cute things\nbefore they float away!', {
-      fontFamily: 'Arial, sans-serif',
+      fontFamily: '"Quicksand", sans-serif',
       fontSize:   `${Math.min(W * 0.046, 17)}px`,
+      fontStyle:  '500',
       color:      '#AA66BB',
       align:      'center',
     }).setOrigin(0.5);
 
     // Lives + hint
     this.add.text(W / 2, H * 0.73, '❤️  ❤️  ❤️   3 lives', {
-      fontFamily: 'Arial, sans-serif',
+      fontFamily: '"Quicksand", sans-serif',
       fontSize:   `${Math.min(W * 0.048, 18)}px`,
+      fontStyle:  '500',
       color:      '#FF6B8A',
       align:      'center',
     }).setOrigin(0.5);
 
     this.add.text(W / 2, H * 0.80, '✨ Consecutive taps = score multiplier!', {
-      fontFamily: 'Arial, sans-serif',
+      fontFamily: '"Quicksand", sans-serif',
       fontSize:   `${Math.min(W * 0.040, 15)}px`,
+      fontStyle:  '500',
       color:      '#9977CC',
       align:      'center',
     }).setOrigin(0.5);
@@ -588,10 +699,10 @@ class MenuScene extends Phaser.Scene {
     btn.strokeRoundedRect(-btnW / 2, -btnH / 2, btnW, btnH, btnH / 2);
 
     const btnText = this.add.text(0, 0, '🎉  Tap to Play!', {
-      fontFamily: 'Arial Black, Arial, sans-serif',
+      fontFamily: '"Quicksand", sans-serif',
       fontSize:   `${Math.min(W * 0.058, 22)}px`,
       color:      '#FFFFFF',
-      fontStyle:  'bold',
+      fontStyle:  '700',
     }).setOrigin(0.5);
 
     const btnContainer = this.add.container(btnCX, btnCY, [btn, btnText]);
@@ -610,9 +721,11 @@ class MenuScene extends Phaser.Scene {
       ease:     'Sine.easeInOut',
     });
 
-    const startGame = () => {
+    const startGame = (pointer) => {
+      if (pointerHitsToggle(pointer, W)) return;
       if (this._starting) return;
       this._starting = true;
+      sound.click();
       this.cameras.main.fadeOut(350, 255, 240, 248);
       this.cameras.main.once('camerafadeoutcomplete', () => {
         this.scene.start('GameScene');
@@ -620,6 +733,7 @@ class MenuScene extends Phaser.Scene {
     };
 
     this.input.on('pointerdown', startGame);
+    addSoundToggle(this, W);
     this._elapsed = 0;
   }
 
@@ -692,25 +806,28 @@ class GameScene extends Phaser.Scene {
     const hudFontSize = Math.min(W * 0.055, 20);
 
     this._scoreTxt = this.add.text(W * 0.05, barH / 2 + 6, '⭐ 0', {
-      fontFamily: 'Arial Black, Arial, sans-serif',
+      fontFamily: '"Quicksand", sans-serif',
       fontSize:   `${hudFontSize}px`,
+      fontStyle:  '700',
       color:      '#CC3388',
     }).setOrigin(0, 0.5).setDepth(11);
 
     this._multTxt = this.add.text(W * 0.5, barH / 2 + 6, '', {
-      fontFamily: 'Arial Black, Arial, sans-serif',
+      fontFamily: '"Quicksand", sans-serif',
       fontSize:   `${hudFontSize * 0.85}px`,
+      fontStyle:  '700',
       color:      '#9944CC',
     }).setOrigin(0.5, 0.5).setDepth(11);
 
-    this._livesTxt = this.add.text(W * 0.96, barH / 2 + 6, '❤️❤️❤️', {
-      fontFamily: 'Arial, sans-serif',
+    this._livesTxt = this.add.text(W * 0.84, barH / 2 + 6, '❤️❤️❤️', {
+      fontFamily: '"Quicksand", sans-serif',
       fontSize:   `${hudFontSize * 0.9}px`,
       color:      '#FF4466',
     }).setOrigin(1, 0.5).setDepth(11);
 
     this._particlePool = [];
     this.input.on('pointerdown', this._onTap, this);
+    addSoundToggle(this, W);
     this.cameras.main.fadeIn(400, 255, 240, 248);
   }
 
@@ -818,10 +935,10 @@ class GameScene extends Phaser.Scene {
     let label = null;
     if (type === 'thingy') {
       label = this.add.text(x, y + 28 * scale, 'thingy thingy', {
-        fontFamily: 'Arial, sans-serif',
-        fontSize:   `${Math.min(this._W * 0.032, 12)}px`,
+        fontFamily: '"Dancing Script", cursive',
+        fontSize:   `${Math.min(this._W * 0.038, 14)}px`,
         color:      '#CC44AA',
-        fontStyle:  'italic',
+        fontStyle:  '600',
         stroke:     '#FFFFFF',
         strokeThickness: 2,
       }).setOrigin(0.5).setDepth(6).setAlpha(0.85);
@@ -856,6 +973,7 @@ class GameScene extends Phaser.Scene {
 
   _onTap(pointer) {
     if (this._gameOver) return;
+    if (pointerHitsToggle(pointer, this._W)) return;
     const px = pointer.x, py = pointer.y;
     let hit = false;
     for (let i = this._items.length - 1; i >= 0; i--) {
@@ -880,6 +998,8 @@ class GameScene extends Phaser.Scene {
     const pts = 10 * this._multiplier;
     this._score += pts;
     this._scoreTxt.setText(`⭐ ${this._score}`);
+    sound.pop(this._multiplier);
+    if (this._combo > 1) sound.combo(this._multiplier);
 
     this.tweens.add({
       targets:  item.image,
@@ -913,8 +1033,9 @@ class GameScene extends Phaser.Scene {
     else if (item.type === 'photo') popEmoji = '📷 +';
 
     const scoreTxt = this.add.text(px, py - 10, `${popEmoji}${pts}`, {
-      fontFamily: 'Arial Black, Arial, sans-serif',
+      fontFamily: '"Quicksand", sans-serif',
       fontSize:   `${Math.min(this._W * 0.065, 24) + this._multiplier * 1.5}px`,
+      fontStyle:  '700',
       color:      this._multiplierColor(),
       stroke:     '#FFFFFF',
       strokeThickness: 3,
@@ -933,10 +1054,10 @@ class GameScene extends Phaser.Scene {
       const comboLabels = ['','','Cute!','Great!','Awesome!','Amazing!','Superb!','Fantastic!','PERFECT!'];
       const label = comboLabels[Math.min(this._combo, comboLabels.length - 1)] || 'PERFECT!';
       const ct = this.add.text(px, py - 42, `${label} x${this._multiplier}`, {
-        fontFamily: 'Georgia, serif',
-        fontSize:   `${Math.min(this._W * 0.055, 20)}px`,
+        fontFamily: '"Dancing Script", cursive',
+        fontSize:   `${Math.min(this._W * 0.062, 22)}px`,
         color:      '#CC44AA',
-        fontStyle:  'italic',
+        fontStyle:  '700',
         stroke:     '#FFFFFF',
         strokeThickness: 2,
       }).setOrigin(0.5).setDepth(20);
@@ -984,6 +1105,7 @@ class GameScene extends Phaser.Scene {
     this._comboTimer = 0;
     this._updateMultText();
     this._updateLivesText();
+    sound.lifeLost();
 
     const flash = this.add.graphics().setDepth(30);
     flash.fillStyle(0xFF4466, 0.28);
@@ -1103,15 +1225,18 @@ class GameScene extends Phaser.Scene {
     const W = this._W, H = this._H;
 
     const overlay = this.add.graphics().setDepth(40);
-    overlay.fillStyle(0x220033, 0.85);
+    overlay.fillStyle(0x220033, 0.88);
     overlay.fillRect(0, 0, W, H);
     overlay.alpha = 0;
-    this.tweens.add({ targets: overlay, alpha: 0.85, duration: 500 });
+    this.tweens.add({ targets: overlay, alpha: 0.88, duration: 500 });
 
-    const panW = Math.min(W - 32, 350);
-    const panH = Math.min(H * 0.80, 540);
+    const panW = Math.min(W - 24, 360);
+    const panH = Math.min(H * 0.86, 600);
     const panX = W / 2 - panW / 2;
     const panY = H / 2 - panH / 2;
+
+    this._panX = panX; this._panY = panY;
+    this._panW = panW; this._panH = panH;
 
     const panel = this.add.graphics().setDepth(41);
     panel.fillStyle(0xFFF0F8, 0.97);
@@ -1124,7 +1249,7 @@ class GameScene extends Phaser.Scene {
     for (let i = 0; i < 40; i++) {
       this.time.delayedCall(i * 35, () => {
         const cx2 = randBetween(panX + 20, panX + panW - 20);
-        const cy2 = randBetween(panY + 10, panY + panH * 0.35);
+        const cy2 = randBetween(panY + 10, panY + panH * 0.28);
         this._burst(cx2, cy2, randItem(ITEM_TYPES));
       });
     }
@@ -1138,92 +1263,88 @@ class GameScene extends Phaser.Scene {
       onComplete: () => { this.tweens.add({ targets: panel, y: panY, duration: 200 }); },
     });
 
+    // Celebratory chime once the panel settles
+    this.time.delayedCall(900, () => sound.chime());
+
     const depth = 42;
     const fs    = (frac, max) => `${Math.min(W * frac, max)}px`;
 
     // 🎂 emoji
-    const cake = this.add.text(W / 2, panY + panH * 0.09, '🎂', {
-      fontSize: fs(0.14, 58),
+    const cake = this.add.text(W / 2, panY + panH * 0.07, '🎂', {
+      fontSize: fs(0.11, 46),
     }).setOrigin(0.5).setDepth(depth).setAlpha(0);
 
     // "Happy 19th Birthday"
-    const hbLine1 = this.add.text(W / 2, panY + panH * 0.22, 'Happy 19th Birthday,', {
-      fontFamily: 'Georgia, serif',
-      fontSize:   fs(0.068, 24),
+    const hbLine1 = this.add.text(W / 2, panY + panH * 0.15, 'Happy 19th Birthday,', {
+      fontFamily: '"Playfair Display", Georgia, serif',
+      fontSize:   fs(0.058, 21),
       color:      '#CC3388',
-      fontStyle:  'italic',
+      fontStyle:  'italic 700',
     }).setOrigin(0.5).setDepth(depth).setAlpha(0);
 
-    const hbLine2 = this.add.text(W / 2, panY + panH * 0.31, 'Kavya! 🎂', {
-      fontFamily: 'Georgia, serif',
-      fontSize:   fs(0.10, 38),
+    const hbLine2 = this.add.text(W / 2, panY + panH * 0.22, 'Kavya! 🎂', {
+      fontFamily: '"Playfair Display", Georgia, serif',
+      fontSize:   fs(0.088, 34),
       color:      '#FF1166',
-      fontStyle:  'bold',
+      fontStyle:  '900',
     }).setOrigin(0.5).setDepth(depth).setAlpha(0);
-
-    // Divider
-    const divG = this.add.graphics().setDepth(depth).setAlpha(0);
-    divG.lineStyle(2, COLORS.pink, 0.7);
-    divG.beginPath();
-    divG.moveTo(panX + 30, panY + panH * 0.40);
-    divG.lineTo(panX + panW - 30, panY + panH * 0.40);
-    divG.strokePath();
-
-    // Heartfelt message
-    const msgFontSize = fs(0.046, 16);
-    const msg = this.add.text(W / 2, panY + panH * 0.49,
-      "I'm so glad I met you.\nHere's to more chaos,\ncats, and dark chocolate\ntogether. 💕",
-      {
-        fontFamily: 'Georgia, serif',
-        fontSize:   msgFontSize,
-        color:      '#884499',
-        fontStyle:  'italic',
-        align:      'center',
-        lineSpacing: 4,
-      }).setOrigin(0.5).setDepth(depth).setAlpha(0);
 
     // Score
-    const scoreLine = this.add.text(W / 2, panY + panH * 0.67, `⭐  Score: ${this._score}`, {
-      fontFamily: 'Arial Black, Arial, sans-serif',
-      fontSize:   fs(0.072, 26),
+    const scoreLine = this.add.text(W / 2, panY + panH * 0.30, `⭐  Score: ${this._score}`, {
+      fontFamily: '"Quicksand", sans-serif',
+      fontSize:   fs(0.060, 22),
+      fontStyle:  '700',
       color:      '#774499',
     }).setOrigin(0.5).setDepth(depth).setAlpha(0);
 
     // Rank
     const rank = this._getRank(this._score);
-    const rankLine = this.add.text(W / 2, panY + panH * 0.75, rank, {
-      fontFamily: 'Arial, sans-serif',
-      fontSize:   fs(0.052, 19),
+    const rankLine = this.add.text(W / 2, panY + panH * 0.355, rank, {
+      fontFamily: '"Quicksand", sans-serif',
+      fontSize:   fs(0.044, 16),
+      fontStyle:  '500',
       color:      '#AA55BB',
       align:      'center',
     }).setOrigin(0.5).setDepth(depth).setAlpha(0);
+
+    // Soft divider above the carousel
+    const divG = this.add.graphics().setDepth(depth).setAlpha(0);
+    divG.lineStyle(2, COLORS.pink, 0.55);
+    divG.beginPath();
+    divG.moveTo(panX + 40, panY + panH * 0.40);
+    divG.lineTo(panX + panW - 40, panY + panH * 0.40);
+    divG.strokePath();
 
     // Play again button — Container so graphics and text scale from the same origin
     const btnW2 = panW * 0.68;
     const btnH2 = Math.min(H * 0.07, 48);
     const btnCX2 = W / 2;
-    const btnCY2 = panY + panH * 0.87 + btnH2 / 2;
+    const btnCY2 = panY + panH * 0.93;
 
     const btn2G = this.add.graphics();
     btn2G.fillStyle(COLORS.darkPink, 1);
     btn2G.fillRoundedRect(-btnW2 / 2, -btnH2 / 2, btnW2, btnH2, btnH2 / 2);
+    btn2G.lineStyle(2, 0xFFFFFF, 0.6);
+    btn2G.strokeRoundedRect(-btnW2 / 2, -btnH2 / 2, btnW2, btnH2, btnH2 / 2);
 
     const btnTxt2 = this.add.text(0, 0, '🔄  Play Again', {
-      fontFamily: 'Arial Black, Arial, sans-serif',
+      fontFamily: '"Quicksand", sans-serif',
       fontSize:   fs(0.052, 19),
+      fontStyle:  '700',
       color:      '#FFFFFF',
     }).setOrigin(0.5);
 
-    const btn2 = this.add.container(btnCX2, btnCY2, [btn2G, btnTxt2]).setDepth(depth).setAlpha(0);
+    const btn2 = this.add.container(btnCX2, btnCY2, [btn2G, btnTxt2]).setDepth(50).setAlpha(0);
     btn2.setInteractive(
       new Phaser.Geom.Rectangle(-btnW2 / 2, -btnH2 / 2, btnW2, btnH2),
       Phaser.Geom.Rectangle.Contains
     );
 
-    const allGO = [cake, hbLine1, hbLine2, divG, msg, scoreLine, rankLine, btn2];
-    allGO.forEach((obj, i) => {
-      this.tweens.add({ targets: obj, alpha: 1, delay: 300 + i * 100, duration: 420 });
+    const header = [cake, hbLine1, hbLine2, scoreLine, rankLine, divG];
+    header.forEach((obj, i) => {
+      this.tweens.add({ targets: obj, alpha: 1, delay: 300 + i * 110, duration: 420 });
     });
+    this.tweens.add({ targets: btn2, alpha: 1, delay: 1200, duration: 420 });
 
     this.tweens.add({
       targets:  btn2,
@@ -1233,16 +1354,276 @@ class GameScene extends Phaser.Scene {
       yoyo:     true,
       repeat:   -1,
       ease:     'Sine.easeInOut',
-      delay:    1400,
+      delay:    1600,
     });
 
-    const restart = () => {
+    const restart = (pointer) => {
+      if (this._restarting) return;
+      if (pointer && pointerHitsToggle(pointer, this._W)) return;
+      this._restarting = true;
+      sound.click();
       this.cameras.main.fadeOut(300, 255, 240, 248);
       this.cameras.main.once('camerafadeoutcomplete', () => { this.scene.restart(); });
     };
-
     btn2.on('pointerdown', restart);
-    this.time.delayedCall(1500, () => { this.input.on('pointerdown', restart); });
+
+    // Build the photo carousel as soon as the hero settles
+    this.time.delayedCall(1100, () => this._buildCarousel());
+
+    // Begin the typewriter letter after the first carousel tap OR a 7s fallback
+    this._letterStarted = false;
+    this._carouselFirstTap = false;
+    this._letterFallback = this.time.delayedCall(7000, () => this._startLetter());
+  }
+
+  _buildCarousel() {
+    const W = this._W;
+    const panX = this._panX, panY = this._panY;
+    const panW = this._panW, panH = this._panH;
+
+    this._carouselSlides = [
+      { tex: 'photo_0', tilt: -3 },
+      { tex: 'photo_1', tilt:  2 },
+      { tex: 'photo_2', tilt: -1 },
+      { tex: 'photo_0', tilt:  4 },
+      { tex: 'photo_1', tilt: -2 },
+    ];
+    this._carouselIdx = 0;
+    this._carouselBusy = false;
+
+    const cx = W / 2;
+    const cy = panY + panH * 0.55;
+    const slideScale = Math.min((panW - 120) / 70, 2.6);
+
+    // Soft glow disc behind active polaroid
+    const halo = this.add.graphics().setDepth(43);
+    halo.fillStyle(COLORS.pink, 0.18);
+    halo.fillCircle(cx, cy, Math.min(panW * 0.42, 130));
+    halo.setAlpha(0);
+    this.tweens.add({ targets: halo, alpha: 1, duration: 500 });
+    this._carouselHalo = halo;
+
+    // Slide containers
+    this._carouselContainers = this._carouselSlides.map((s, i) => {
+      const shadow = this.add.graphics();
+      shadow.fillStyle(0x000000, 0.22);
+      shadow.fillEllipse(0, 50, 100, 16);
+
+      const img = this.add.image(0, 0, s.tex);
+      img.setRotation(Phaser.Math.DegToRad(s.tilt));
+
+      const c = this.add.container(cx, cy, [shadow, img]).setDepth(45);
+      c.setScale(slideScale);
+      c.setVisible(i === 0);
+      c.setAlpha(0);
+      return c;
+    });
+    // Bounce-in the active slide
+    this._carouselContainers[0].setScale(slideScale * 0.65);
+    this.tweens.add({
+      targets:  this._carouselContainers[0],
+      alpha:    1,
+      scaleX:   slideScale,
+      scaleY:   slideScale,
+      duration: 540,
+      ease:     'Back.easeOut',
+    });
+
+    // Dot indicators
+    const dotsY = panY + panH * 0.72;
+    const dotSpacing = 16;
+    const dotStartX = cx - (this._carouselSlides.length - 1) * dotSpacing / 2;
+    this._carouselDots = this._carouselSlides.map((_, i) => {
+      const g = this.add.graphics().setDepth(46).setAlpha(0);
+      g._x = dotStartX + i * dotSpacing;
+      g._y = dotsY;
+      this._drawDot(g, i === 0);
+      return g;
+    });
+    this.tweens.add({ targets: this._carouselDots, alpha: 1, duration: 400, delay: 200 });
+
+    // Arrows
+    const arrowY = cy;
+    this._buildArrow(panX + 26, arrowY, '‹', -1);
+    this._buildArrow(panX + panW - 26, arrowY, '›', 1);
+
+    // Lazy sparkle field around active slide
+    this._sparkleEvent = this.time.addEvent({
+      delay: 480,
+      loop: true,
+      callback: () => this._spawnCarouselSparkle(),
+    });
+  }
+
+  _drawDot(g, active) {
+    g.clear();
+    if (active) {
+      g.fillStyle(COLORS.darkPink, 1);
+      g.fillCircle(g._x, g._y, 5);
+      g.lineStyle(1, 0xFFFFFF, 0.9);
+      g.strokeCircle(g._x, g._y, 5);
+    } else {
+      g.fillStyle(COLORS.pink, 0.45);
+      g.fillCircle(g._x, g._y, 3.5);
+    }
+  }
+
+  _buildArrow(x, y, glyph, dir) {
+    const r = 22;
+    const bg = this.add.graphics();
+    bg.fillStyle(0xFFFFFF, 0.92);
+    bg.fillCircle(0, 0, r);
+    bg.lineStyle(2, COLORS.darkPink, 0.85);
+    bg.strokeCircle(0, 0, r);
+    const txt = this.add.text(0, -2, glyph, {
+      fontFamily: '"Quicksand", sans-serif',
+      fontSize:   '26px',
+      fontStyle:  '700',
+      color:      '#FF85A1',
+    }).setOrigin(0.5);
+    const cont = this.add.container(x, y, [bg, txt]).setDepth(47).setAlpha(0);
+    cont.setInteractive(new Phaser.Geom.Circle(0, 0, r + 4), Phaser.Geom.Circle.Contains);
+    cont.on('pointerdown', (pointer, lx, ly, event) => {
+      this._carouselGoTo(dir);
+      if (event && event.stopPropagation) event.stopPropagation();
+    });
+    this.tweens.add({ targets: cont, alpha: 1, duration: 400, delay: 300 });
+    this.tweens.add({
+      targets: cont, scaleX: 1.10, scaleY: 1.10,
+      duration: 850, yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+      delay: 1500,
+    });
+    return cont;
+  }
+
+  _carouselGoTo(dir) {
+    if (this._carouselBusy) return;
+    if (!this._carouselContainers) return;
+    const n = this._carouselSlides.length;
+    const from = this._carouselIdx;
+    const to = (from + dir + n) % n;
+    if (from === to) return;
+    this._carouselBusy = true;
+
+    const slideScale = this._carouselContainers[from].scaleX;
+    const fromC = this._carouselContainers[from];
+    const toC = this._carouselContainers[to];
+
+    toC.setVisible(true);
+    toC.x = this._W / 2 + dir * 160;
+    toC.alpha = 0;
+    toC.setScale(slideScale * 0.85);
+
+    this.tweens.add({
+      targets:  fromC,
+      x:        this._W / 2 - dir * 160,
+      alpha:    0,
+      scaleX:   slideScale * 0.85,
+      scaleY:   slideScale * 0.85,
+      duration: 380,
+      ease:     'Cubic.easeInOut',
+      onComplete: () => fromC.setVisible(false),
+    });
+    this.tweens.add({
+      targets:  toC,
+      x:        this._W / 2,
+      alpha:    1,
+      scaleX:   slideScale,
+      scaleY:   slideScale,
+      duration: 380,
+      ease:     'Cubic.easeInOut',
+      onComplete: () => { this._carouselBusy = false; },
+    });
+
+    this._carouselIdx = to;
+    this._carouselDots.forEach((g, i) => this._drawDot(g, i === to));
+
+    sound.click();
+
+    if (!this._carouselFirstTap) {
+      this._carouselFirstTap = true;
+      if (this._letterFallback) { this._letterFallback.remove(); this._letterFallback = null; }
+      this.time.delayedCall(450, () => this._startLetter());
+    }
+  }
+
+  _spawnCarouselSparkle() {
+    const c = this._carouselContainers && this._carouselContainers[this._carouselIdx];
+    if (!c || !c.visible) return;
+    const sx = c.x + randBetween(-80, 80);
+    const sy = c.y + randBetween(-60, 60);
+    let pool = this._particlePool.find(p => !p.active);
+    if (!pool) {
+      const cg = this.add.graphics().setDepth(48);
+      pool = { circle: cg, active: false };
+      this._particlePool.push(pool);
+    }
+    pool.active = true;
+    pool.x = sx; pool.y = sy;
+    pool.vx = randBetween(-0.25, 0.25);
+    pool.vy = randBetween(-0.5, -0.1);
+    pool.life = 900; pool.maxLife = 900;
+    pool.baseAlpha = 0.9; pool.baseScale = 0.7;
+    pool.circle.clear();
+    drawStar(pool.circle, 0, 0, 4, 5, 2, COLORS.gold, undefined, 0);
+    pool.circle.setPosition(sx, sy);
+    pool.circle.setAlpha(0.9);
+    pool.circle.setScale(0.7);
+    pool.circle.setVisible(true);
+  }
+
+  _startLetter() {
+    if (this._letterStarted) return;
+    this._letterStarted = true;
+
+    const W = this._W;
+    const panY = this._panY, panH = this._panH;
+    const letterY = panY + panH * 0.77;
+
+    const full =
+      "Kavya,\n\n" +
+      "Nineteen years of you. Nineteen years\n" +
+      "of cats, chocolate, chaos, and the\n" +
+      "legendary thingy thingy.\n\n" +
+      "I'm so lucky to share any of it with you. 💕";
+
+    this._letterText = this.add.text(W / 2, letterY, '', {
+      fontFamily: '"Dancing Script", cursive',
+      fontSize:   `${Math.min(W * 0.052, 19)}px`,
+      fontStyle:  '700',
+      color:      '#A8447A',
+      align:      'center',
+      lineSpacing: 6,
+    }).setOrigin(0.5, 0).setDepth(46).setAlpha(0);
+    this.tweens.add({ targets: this._letterText, alpha: 1, duration: 350 });
+
+    let i = 0;
+    this._letterFull = full;
+    this._letterTimer = this.time.addEvent({
+      delay: 36,
+      loop:  true,
+      callback: () => {
+        i++;
+        const head = full.slice(0, i);
+        this._letterText.setText(i < full.length ? head + '▌' : head);
+        const ch = full[i - 1];
+        if (ch && ch !== ' ' && ch !== '\n') sound.tick();
+        if (i >= full.length) {
+          this._letterTimer.remove();
+          this._letterTimer = null;
+        }
+      },
+    });
+
+    // Tap to fast-forward (but not on toggle / arrows / Play Again)
+    this._skipHandler = (pointer) => {
+      if (pointerHitsToggle(pointer, this._W)) return;
+      if (!this._letterTimer) return;
+      this._letterTimer.remove();
+      this._letterTimer = null;
+      this._letterText.setText(this._letterFull);
+    };
+    this.input.on('pointerdown', this._skipHandler);
   }
 
   _getRank(score) {
