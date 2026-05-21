@@ -455,52 +455,6 @@ class BootScene extends Phaser.Scene {
       g.destroy();
     })();
 
-    // ── Photo placeholders (polaroid style) ───────────────────────────────
-    const photoTints = [COLORS.pink, COLORS.lavender, COLORS.mint];
-    for (let i = 0; i < 3; i++) {
-      const g = this.make.graphics({ x: 0, y: 0, add: false });
-      const pw = 52, ph = 64;
-      // drop shadow
-      g.fillStyle(0x000000, 0.07);
-      g.fillRoundedRect(4, 5, pw, ph, 6);
-      // white card
-      g.fillStyle(0xFFFFFF, 1);
-      g.fillRoundedRect(2, 2, pw, ph, 6);
-      // soft border
-      g.lineStyle(1.5, photoTints[i], 0.5);
-      g.strokeRoundedRect(2, 2, pw, ph, 6);
-      // tinted photo area
-      const photoAreaH = ph - 20;
-      g.fillStyle(photoTints[i], 0.22);
-      g.fillRoundedRect(6, 6, pw - 8, photoAreaH, 4);
-      // placeholder content inside photo area
-      const cx = 2 + pw / 2, cy = 6 + photoAreaH / 2;
-      if (i === 0) {
-        drawHeart(g, cx, cy + 2, 22, COLORS.darkPink);
-      } else if (i === 1) {
-        drawStar(g, cx, cy, 5, 12, 5, COLORS.purple, 0xFFFFFF, 0.35);
-      } else {
-        // mini cat silhouette
-        g.fillStyle(COLORS.darkPink, 0.65);
-        g.fillCircle(cx, cy + 4, 11);
-        g.fillTriangle(cx - 9, cy - 5, cx - 14, cy - 17, cx - 4, cy - 10);
-        g.fillTriangle(cx + 9, cy - 5, cx + 14, cy - 17, cx + 4, cy - 10);
-        g.fillStyle(0x333333, 0.8);
-        g.fillCircle(cx - 4, cy + 2, 2);
-        g.fillCircle(cx + 4, cy + 2, 2);
-      }
-      // bottom polaroid strip
-      g.fillStyle(0xFFFFFF, 1);
-      g.fillRoundedRect(6, 6 + photoAreaH + 1, pw - 8, 13, 2);
-      // three dot decoration on bottom strip
-      g.fillStyle(photoTints[i], 0.55);
-      g.fillCircle(cx - 7, 6 + photoAreaH + 7, 2);
-      g.fillCircle(cx,     6 + photoAreaH + 7, 2);
-      g.fillCircle(cx + 7, 6 + photoAreaH + 7, 2);
-      g.generateTexture(`photo_item_${i}`, 60, 72);
-      g.destroy();
-    }
-
     this.scene.start('MenuScene');
   }
 }
@@ -913,8 +867,8 @@ class GameScene extends Phaser.Scene {
   _spawnItem() {
     const W = this._W, H = this._H;
     const type   = randItem(ITEM_TYPES);
-    const subIdx = randInt(0, 2);
-    const key    = type === 'photo' ? `photo_item_${subIdx}` : `${type}_${subIdx}`;
+    const subIdx = type === 'photo' ? randInt(0, 4) : randInt(0, 2);
+    const key    = `${type}_${subIdx}`;
     const barH   = Math.min(H * 0.085, 58);
 
     const x     = randBetween(40, W - 40);
@@ -923,6 +877,7 @@ class GameScene extends Phaser.Scene {
     const speed = randBetween(1.2, 2.2) * this._speedMult;
 
     const img = this.add.image(x, y, key).setScale(scale).setDepth(5);
+    if (type === 'photo') img.setDisplaySize(52, 64);
 
     // Glow color per type
     const glowColors = {
@@ -1357,7 +1312,10 @@ class GameScene extends Phaser.Scene {
 
     const cx = W / 2;
     const cy = panY + panH * 0.55;
-    const slideScale = Math.min((panW - 120) / 70, 2.6);
+    const photoW = Math.min(panW - 80, 210);
+    const photoH = Math.min(panH * 0.28, 170);
+    const slideScale = 1.0;
+    this._carouselSlideScale = slideScale;
 
     // Soft glow disc behind active polaroid
     const halo = this.add.graphics().setDepth(43);
@@ -1371,9 +1329,10 @@ class GameScene extends Phaser.Scene {
     this._carouselContainers = this._carouselSlides.map((s, i) => {
       const shadow = this.add.graphics();
       shadow.fillStyle(0x000000, 0.08);
-      shadow.fillEllipse(0, 35, 60, 8);
+      shadow.fillEllipse(0, photoH / 2 + 12, photoW * 0.65, 10);
 
       const img = this.add.image(0, 0, s.tex);
+      img.setDisplaySize(photoW, photoH);
       img.setRotation(Phaser.Math.DegToRad(s.tilt));
 
       const c = this.add.container(cx, cy, [shadow, img]).setDepth(45);
@@ -1546,9 +1505,9 @@ class GameScene extends Phaser.Scene {
 
     const full =
       "Kavya,\n\n" +
-      "Nineteen years of cats, chocolate,\n" +
-      "chaos & the legendary thingy thingy.\n" +
-      "I'm so lucky to share it with you. 💕";
+      "I'm so lucky I met you.\n" +
+      "You mean everything to me,\n" +
+      "and I love you sooooo much. 💕";
 
     this._letterText = this.add.text(W / 2, letterY, '', {
       fontFamily: '"Dancing Script", cursive',
