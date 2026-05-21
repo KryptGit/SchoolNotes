@@ -159,9 +159,14 @@ class BootScene extends Phaser.Scene {
   constructor() { super('BootScene'); }
 
   preload() {
-    for (let i = 0; i < 5; i++) {
-      this.load.image(`photo_${i}`, `photos/photo_${i}.jpg`);
-    }
+    const files = [
+      'IMG_6052.jpeg',
+      'IMG_6063.jpeg',
+      'IMG_6064.jpeg',
+      'IMG_6306.jpeg',
+      'dclassic 2026-01-25 204903.992.jpeg',
+    ];
+    files.forEach((name, i) => this.load.image(`photo_${i}`, `photos/${name}`));
   }
 
   create() {
@@ -450,7 +455,7 @@ class BootScene extends Phaser.Scene {
       g.destroy();
     })();
 
-    // ── Photo item placeholders (polaroid style, used during gameplay) ────────────────
+    // ── Photo placeholders (polaroid style) ───────────────────────────────
     const photoTints = [COLORS.pink, COLORS.lavender, COLORS.mint];
     for (let i = 0; i < 3; i++) {
       const g = this.make.graphics({ x: 0, y: 0, add: false });
@@ -1573,7 +1578,7 @@ class GameScene extends Phaser.Scene {
       },
     });
 
-    // Tap to fast-forward (but not on toggle / arrows)
+    // Tap to fast-forward (but not on toggle / arrows / Play Again)
     this._skipHandler = (pointer) => {
       if (pointerHitsToggle(pointer, this._W)) return;
       if (!this._letterTimer) return;
