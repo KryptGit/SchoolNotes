@@ -1233,7 +1233,7 @@ class GameScene extends Phaser.Scene {
     const panW = Math.min(W - 24, 360);
     const panH = Math.min(H * 0.86, 600);
     const panX = W / 2 - panW / 2;
-    const panY = H / 2 - panH / 2;
+    const panY = 4;
 
     this._panX = panX; this._panY = panY;
     this._panW = panW; this._panH = panH;
@@ -1315,57 +1315,10 @@ class GameScene extends Phaser.Scene {
     divG.lineTo(panX + panW - 40, panY + panH * 0.40);
     divG.strokePath();
 
-    // Play again button — Container so graphics and text scale from the same origin
-    const btnW2 = panW * 0.68;
-    const btnH2 = Math.min(H * 0.07, 48);
-    const btnCX2 = W / 2;
-    const btnCY2 = panY + panH * 0.955;
-
-    const btn2G = this.add.graphics();
-    btn2G.fillStyle(COLORS.darkPink, 1);
-    btn2G.fillRoundedRect(-btnW2 / 2, -btnH2 / 2, btnW2, btnH2, btnH2 / 2);
-    btn2G.lineStyle(2, 0xFFFFFF, 0.6);
-    btn2G.strokeRoundedRect(-btnW2 / 2, -btnH2 / 2, btnW2, btnH2, btnH2 / 2);
-
-    const btnTxt2 = this.add.text(0, 0, '🔄  Play Again', {
-      fontFamily: '"Quicksand", sans-serif',
-      fontSize:   fs(0.052, 19),
-      fontStyle:  '700',
-      color:      '#FFFFFF',
-    }).setOrigin(0.5);
-
-    const btn2 = this.add.container(btnCX2, btnCY2, [btn2G, btnTxt2]).setDepth(50).setAlpha(0);
-    btn2.setInteractive(
-      new Phaser.Geom.Rectangle(-btnW2 / 2, -btnH2 / 2, btnW2, btnH2),
-      Phaser.Geom.Rectangle.Contains
-    );
-
     const header = [cake, hbLine1, hbLine2, scoreLine, rankLine, divG];
     header.forEach((obj, i) => {
       this.tweens.add({ targets: obj, alpha: 1, delay: 300 + i * 110, duration: 420 });
     });
-    this.tweens.add({ targets: btn2, alpha: 1, delay: 1200, duration: 420 });
-
-    this.tweens.add({
-      targets:  btn2,
-      scaleX:   1.05,
-      scaleY:   1.05,
-      duration: 650,
-      yoyo:     true,
-      repeat:   -1,
-      ease:     'Sine.easeInOut',
-      delay:    1600,
-    });
-
-    const restart = (pointer) => {
-      if (this._restarting) return;
-      if (pointer && pointerHitsToggle(pointer, this._W)) return;
-      this._restarting = true;
-      sound.click();
-      this.cameras.main.fadeOut(300, 255, 240, 248);
-      this.cameras.main.once('camerafadeoutcomplete', () => { this.scene.restart(); });
-    };
-    btn2.on('pointerdown', restart);
 
     // Build the photo carousel as soon as the hero settles
     this.time.delayedCall(1100, () => this._buildCarousel());
@@ -1614,7 +1567,7 @@ class GameScene extends Phaser.Scene {
       },
     });
 
-    // Tap to fast-forward (but not on toggle / arrows / Play Again)
+    // Tap to fast-forward (but not on toggle / arrows)
     this._skipHandler = (pointer) => {
       if (pointerHitsToggle(pointer, this._W)) return;
       if (!this._letterTimer) return;
