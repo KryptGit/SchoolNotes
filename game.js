@@ -1319,7 +1319,7 @@ class GameScene extends Phaser.Scene {
     const btnW2 = panW * 0.68;
     const btnH2 = Math.min(H * 0.07, 48);
     const btnCX2 = W / 2;
-    const btnCY2 = panY + panH * 0.93;
+    const btnCY2 = panY + panH * 0.955;
 
     const btn2G = this.add.graphics();
     btn2G.fillStyle(COLORS.darkPink, 1);
@@ -1406,8 +1406,8 @@ class GameScene extends Phaser.Scene {
     // Slide containers
     this._carouselContainers = this._carouselSlides.map((s, i) => {
       const shadow = this.add.graphics();
-      shadow.fillStyle(0x000000, 0.22);
-      shadow.fillEllipse(0, 50, 100, 16);
+      shadow.fillStyle(0x000000, 0.08);
+      shadow.fillEllipse(0, 35, 60, 8);
 
       const img = this.add.image(0, 0, s.tex);
       img.setRotation(Phaser.Math.DegToRad(s.tilt));
@@ -1578,22 +1578,21 @@ class GameScene extends Phaser.Scene {
 
     const W = this._W;
     const panY = this._panY, panH = this._panH;
-    const letterY = panY + panH * 0.77;
+    const letterY = panY + panH * 0.74;
 
     const full =
       "Kavya,\n\n" +
-      "Nineteen years of you. Nineteen years\n" +
-      "of cats, chocolate, chaos, and the\n" +
-      "legendary thingy thingy.\n\n" +
-      "I'm so lucky to share any of it with you. 💕";
+      "Nineteen years of cats, chocolate,\n" +
+      "chaos & the legendary thingy thingy.\n" +
+      "I'm so lucky to share it with you. 💕";
 
     this._letterText = this.add.text(W / 2, letterY, '', {
       fontFamily: '"Dancing Script", cursive',
-      fontSize:   `${Math.min(W * 0.052, 19)}px`,
+      fontSize:   `${Math.min(W * 0.048, 17)}px`,
       fontStyle:  '700',
       color:      '#A8447A',
       align:      'center',
-      lineSpacing: 6,
+      lineSpacing: 4,
     }).setOrigin(0.5, 0).setDepth(46).setAlpha(0);
     this.tweens.add({ targets: this._letterText, alpha: 1, duration: 350 });
 
