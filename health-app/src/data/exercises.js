@@ -1,0 +1,72 @@
+export const EXERCISES = [
+  // Chest
+  { id: 'bench_press',      name: 'Bench Press',          muscles: ['Chest'],           secondary: ['Triceps', 'Front Delts'],   equipment: 'Barbell' },
+  { id: 'incline_bench',    name: 'Incline Bench Press',  muscles: ['Upper Chest'],     secondary: ['Triceps', 'Front Delts'],   equipment: 'Barbell' },
+  { id: 'db_bench',         name: 'Dumbbell Bench Press', muscles: ['Chest'],           secondary: ['Triceps', 'Front Delts'],   equipment: 'Dumbbell' },
+  { id: 'db_fly',           name: 'Dumbbell Fly',         muscles: ['Chest'],           secondary: ['Front Delts'],              equipment: 'Dumbbell' },
+  { id: 'cable_fly',        name: 'Cable Fly',            muscles: ['Chest'],           secondary: ['Front Delts'],              equipment: 'Cable' },
+  { id: 'pushup',           name: 'Push-up',              muscles: ['Chest'],           secondary: ['Triceps', 'Core'],          equipment: 'Bodyweight' },
+  { id: 'chest_dip',        name: 'Chest Dip',            muscles: ['Chest'],           secondary: ['Triceps'],                  equipment: 'Bodyweight' },
+  // Back
+  { id: 'pullup',           name: 'Pull-up',              muscles: ['Lats'],            secondary: ['Biceps', 'Rear Delts'],     equipment: 'Bodyweight' },
+  { id: 'chinup',           name: 'Chin-up',              muscles: ['Lats', 'Biceps'],  secondary: ['Rear Delts'],               equipment: 'Bodyweight' },
+  { id: 'lat_pulldown',     name: 'Lat Pulldown',         muscles: ['Lats'],            secondary: ['Biceps'],                   equipment: 'Cable' },
+  { id: 'bb_row',           name: 'Barbell Row',          muscles: ['Lats', 'Traps'],   secondary: ['Biceps', 'Rear Delts'],     equipment: 'Barbell' },
+  { id: 'cable_row',        name: 'Seated Cable Row',     muscles: ['Lats', 'Traps'],   secondary: ['Biceps', 'Rear Delts'],     equipment: 'Cable' },
+  { id: 'db_row',           name: 'Single-Arm DB Row',    muscles: ['Lats'],            secondary: ['Biceps', 'Rear Delts'],     equipment: 'Dumbbell' },
+  { id: 'tbar_row',         name: 'T-Bar Row',            muscles: ['Lats', 'Traps'],   secondary: ['Biceps'],                   equipment: 'Barbell' },
+  { id: 'face_pull',        name: 'Face Pull',            muscles: ['Rear Delts', 'Traps'], secondary: ['Rotator Cuff'],         equipment: 'Cable' },
+  // Shoulders
+  { id: 'ohp',              name: 'Overhead Press',       muscles: ['Shoulders'],       secondary: ['Triceps', 'Upper Chest'],   equipment: 'Barbell' },
+  { id: 'db_ohp',           name: 'Dumbbell OHP',         muscles: ['Shoulders'],       secondary: ['Triceps'],                  equipment: 'Dumbbell' },
+  { id: 'arnold_press',     name: 'Arnold Press',         muscles: ['Shoulders'],       secondary: ['Triceps'],                  equipment: 'Dumbbell' },
+  { id: 'lat_raise',        name: 'Lateral Raise',        muscles: ['Side Delts'],      secondary: [],                           equipment: 'Dumbbell' },
+  { id: 'front_raise',      name: 'Front Raise',          muscles: ['Front Delts'],     secondary: [],                           equipment: 'Dumbbell' },
+  { id: 'rear_delt_fly',    name: 'Rear Delt Fly',        muscles: ['Rear Delts'],      secondary: ['Traps'],                    equipment: 'Dumbbell' },
+  // Biceps
+  { id: 'bb_curl',          name: 'Barbell Curl',         muscles: ['Biceps'],          secondary: ['Forearms'],                 equipment: 'Barbell' },
+  { id: 'db_curl',          name: 'Dumbbell Curl',        muscles: ['Biceps'],          secondary: ['Forearms'],                 equipment: 'Dumbbell' },
+  { id: 'hammer_curl',      name: 'Hammer Curl',          muscles: ['Biceps', 'Forearms'], secondary: [],                       equipment: 'Dumbbell' },
+  { id: 'preacher_curl',    name: 'Preacher Curl',        muscles: ['Biceps'],          secondary: [],                           equipment: 'Barbell' },
+  { id: 'cable_curl',       name: 'Cable Curl',           muscles: ['Biceps'],          secondary: ['Forearms'],                 equipment: 'Cable' },
+  { id: 'concentration_curl', name: 'Concentration Curl', muscles: ['Biceps'],          secondary: [],                           equipment: 'Dumbbell' },
+  // Triceps
+  { id: 'tricep_pushdown',  name: 'Tricep Pushdown',      muscles: ['Triceps'],         secondary: [],                           equipment: 'Cable' },
+  { id: 'skull_crusher',    name: 'Skull Crusher',        muscles: ['Triceps'],         secondary: [],                           equipment: 'Barbell' },
+  { id: 'overhead_ext',     name: 'Overhead Tricep Ext.', muscles: ['Triceps'],         secondary: [],                           equipment: 'Dumbbell' },
+  { id: 'cg_bench',         name: 'Close-Grip Bench',     muscles: ['Triceps'],         secondary: ['Chest'],                    equipment: 'Barbell' },
+  { id: 'tricep_dip',       name: 'Tricep Dip',           muscles: ['Triceps'],         secondary: ['Chest'],                    equipment: 'Bodyweight' },
+  // Legs
+  { id: 'squat',            name: 'Squat',                muscles: ['Quads', 'Glutes'], secondary: ['Hamstrings', 'Core'],       equipment: 'Barbell' },
+  { id: 'front_squat',      name: 'Front Squat',          muscles: ['Quads'],           secondary: ['Core', 'Glutes'],           equipment: 'Barbell' },
+  { id: 'leg_press',        name: 'Leg Press',            muscles: ['Quads', 'Glutes'], secondary: ['Hamstrings'],               equipment: 'Machine' },
+  { id: 'rdl',              name: 'Romanian Deadlift',    muscles: ['Hamstrings', 'Glutes'], secondary: ['Lower Back'],          equipment: 'Barbell' },
+  { id: 'deadlift',         name: 'Deadlift',             muscles: ['Hamstrings', 'Glutes', 'Lower Back'], secondary: ['Traps', 'Core'], equipment: 'Barbell' },
+  { id: 'leg_curl',         name: 'Leg Curl',             muscles: ['Hamstrings'],      secondary: [],                           equipment: 'Machine' },
+  { id: 'leg_ext',          name: 'Leg Extension',        muscles: ['Quads'],           secondary: [],                           equipment: 'Machine' },
+  { id: 'hip_thrust',       name: 'Hip Thrust',           muscles: ['Glutes'],          secondary: ['Hamstrings'],               equipment: 'Barbell' },
+  { id: 'bulgarian_split',  name: 'Bulgarian Split Squat', muscles: ['Quads', 'Glutes'], secondary: ['Balance'],                 equipment: 'Dumbbell' },
+  { id: 'walking_lunge',    name: 'Walking Lunge',        muscles: ['Quads', 'Glutes'], secondary: ['Hamstrings', 'Balance'],    equipment: 'Bodyweight' },
+  { id: 'calf_raise',       name: 'Calf Raise',           muscles: ['Calves'],          secondary: [],                           equipment: 'Machine' },
+  { id: 'seated_calf',      name: 'Seated Calf Raise',    muscles: ['Calves'],          secondary: [],                           equipment: 'Machine' },
+  // Core
+  { id: 'plank',            name: 'Plank',                muscles: ['Core'],            secondary: ['Shoulders', 'Glutes'],      equipment: 'Bodyweight' },
+  { id: 'crunch',           name: 'Crunch',               muscles: ['Abs'],             secondary: [],                           equipment: 'Bodyweight' },
+  { id: 'bicycle_crunch',   name: 'Bicycle Crunch',       muscles: ['Abs', 'Obliques'], secondary: [],                           equipment: 'Bodyweight' },
+  { id: 'russian_twist',    name: 'Russian Twist',        muscles: ['Obliques'],        secondary: ['Abs'],                      equipment: 'Bodyweight' },
+  { id: 'hanging_knee',     name: 'Hanging Knee Raise',   muscles: ['Abs'],             secondary: ['Hip Flexors'],              equipment: 'Bodyweight' },
+  { id: 'ab_wheel',         name: 'Ab Wheel Rollout',     muscles: ['Abs', 'Core'],     secondary: ['Shoulders', 'Lats'],        equipment: 'Ab Wheel' },
+  { id: 'dead_bug',         name: 'Dead Bug',             muscles: ['Core'],            secondary: ['Lower Back'],               equipment: 'Bodyweight' },
+  { id: 'cable_crunch',     name: 'Cable Crunch',         muscles: ['Abs'],             secondary: [],                           equipment: 'Cable' },
+  { id: 'leg_raise',        name: 'Lying Leg Raise',      muscles: ['Abs', 'Hip Flexors'], secondary: [],                       equipment: 'Bodyweight' },
+  // Full body / compound
+  { id: 'power_clean',      name: 'Power Clean',          muscles: ['Full Body'],       secondary: ['Traps', 'Glutes'],          equipment: 'Barbell' },
+  { id: 'thruster',         name: 'Thruster',             muscles: ['Full Body'],       secondary: ['Shoulders', 'Quads'],       equipment: 'Barbell' },
+  { id: 'kb_swing',         name: 'Kettlebell Swing',     muscles: ['Glutes', 'Hamstrings'], secondary: ['Core', 'Shoulders'],  equipment: 'Kettlebell' },
+];
+
+export const MUSCLE_GROUPS = [
+  'Chest', 'Lats', 'Traps', 'Shoulders', 'Front Delts', 'Side Delts', 'Rear Delts',
+  'Biceps', 'Triceps', 'Forearms', 'Quads', 'Hamstrings', 'Glutes', 'Calves',
+  'Abs', 'Obliques', 'Core', 'Lower Back', 'Full Body',
+];
